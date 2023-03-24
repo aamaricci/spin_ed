@@ -1,0 +1,15 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}/bin
+includedir=${prefix}/include
+libdir=${prefix}/lib
+
+Name: Spin_Ed
+Description: The Spin_Ed library
+Cflags: -I${includedir}
+Libs: -L${libdir} -lspin_ed
+Version:@VERSION@
+
+	
+
+
+ 

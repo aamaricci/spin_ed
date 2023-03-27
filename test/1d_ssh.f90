@@ -25,7 +25,7 @@ program ssh1d
   !
   !> INIT H(Ri,Rj) matrix with Nsites[1:Norb,1==Imp]
   call ed_Hij_init(Nsites)
-  !> BUILD BATH PART: H(Ri,Rj)_aa
+  !> BUILD H(Ri,Rj)_aa
   N   = Nsites(1)                !odd
   N1  = (N+1)/2                  !N1%2==0
   call ed_Hij_add_link(1,2,1,1,jspin(1))

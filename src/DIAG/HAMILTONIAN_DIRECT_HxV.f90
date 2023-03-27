@@ -45,12 +45,7 @@ contains
        m   = Hsector%H(1)%map(j)
        Nup = bdecomp(m,Ns)
        Sz  = Nup-0.5d0
-       !
-       !LOCAL HAMILTONIAN TERMS
-       include "direct/HxV_diag.f90"
-       !
-       !HOPPING TERMS
-       include "direct/HxV_hop.f90"
+       include "direct/HxV_spin.f90"
     enddo
     !-----------------------------------------------!
     !
@@ -96,13 +91,7 @@ contains
        m   = Hsector%H(1)%map(j)
        Nup = bdecomp(m,Ns)
        Sz  = Nup-0.5d0
-
-       !LOCAL HAMILTONIAN TERMS
-       include "direct/HxV_diag.f90"
-       !
-       !HOPPING TERMS
-       include "direct/HxV_hop.f90"
-       !
+       include "direct/HxV_spin.f90"
     enddo states
     !-----------------------------------------------!
     deallocate(vin)

@@ -54,12 +54,7 @@ contains
 #endif
     !
     !-----------------------------------------------!
-    !LOCAL HAMILTONIAN TERMS
-    include "stored/H_diag.f90"    
-    !
-    ! !NON-LOCAL HAMILTONIAN TERMS
-    include "stored/H_hop.f90"
-    !
+    include "stored/H_spin.f90"
     !-----------------------------------------------!
     if(present(Hmat))then
        Hmat = zero

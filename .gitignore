@@ -1,0 +1,11 @@
+test/run
+test/run/code_version.inc
+test/run/eigenvalues_list.ed
+test/run/inputSSH.conf
+test/run/scifor_version.inc
+test/run/state_list.ed
+test/run/stdOUT.rank1.ed
+test/run/stdOUT.rank2.ed
+test/run/stdOUT.rank3.ed
+test/run/used.inputSSH.conf
+build*

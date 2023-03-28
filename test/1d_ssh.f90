@@ -6,12 +6,14 @@ program ssh1d
 #endif
   implicit none
   character(len=16)   :: finput
-  real(8)             :: bz,j,j0,dj
-  integer             :: N,N1,i
-  logical             :: pbc
+  real(8)             :: bz,j,j0,dj,spin_gap
+  real(8),allocatable :: egs(:)
+  integer             :: N,N1,i,Len
+  logical             :: pbc,master=.true.
   !
 #ifdef _MPI
   call init_MPI
+  master = get_Master_MPI()
 #endif
   !
   call parse_cmd_variable(finput,"FINPUT",default='inputSSH.conf')
@@ -28,15 +30,13 @@ program ssh1d
   !> BUILD H(Ri,Rj)_aa
   N   = Nsites(1)                !odd
   N1  = (N+1)/2                  !N1%2==0
-  call ed_Hij_add_link(1,2,1,1,jspin(1))
-  do i=2,N-1
-     call ed_Hij_add_link(i,i-1,1,1,jspin(i))
-     call ed_Hij_add_link(i,i+1,1,1,jspin(i))
+  do i=2,N
+     call ed_Hij_add_link(i-1,i,1,1,jspin(i-1))
+     call ed_Hij_add_link(i,i-1,1,1,jspin(i-1))
   enddo
-  call ed_Hij_add_link(N,N-1,1,1,jspin(N))
   if(pbc)then
-     call ed_Hij_add_link(1,N,1,1,jspin(1))
      call ed_Hij_add_link(N,1,1,1,jspin(N))
+     call ed_Hij_add_link(1,N,1,1,jspin(N))
   end if
   !
   !PRINT INFO H(Ri,Rj)
@@ -45,6 +45,22 @@ program ssh1d
   !> SOLVE THE SPIN PROBLEM
   call ed_init_solver()
   call ed_solve()
+  !
+  if(master)then
+     len=file_length("list_gs_energy.ed")
+     allocate(egs(len))
+     open(100,file="list_gs_energy.ed")
+     do i=1,len
+        read(100,*)egs(i)
+     enddo
+     close(100)
+     egs = egs-minval(egs)
+     spin_gap = minval(egs,mask=egs>0d0)
+     open(100,file="spin_gap.dat")
+     write(*,*)"Spin Gap=",spin_gap
+     write(100,*)spin_gap
+     close(100)
+  endif
   !
   !
 #ifdef _MPI
@@ -56,8 +72,6 @@ contains
   function jspin(i) result(j)
     integer    :: i
     complex(8) :: j
-    !if I%2=0: J=J0+dJ
-    !else    : J=J0-dJ
     J=one*(J0-dJ)
     if(mod(i,2)==0)J=one*(J0+dJ)
   end function jspin

@@ -87,7 +87,7 @@ contains
   subroutine ed_diag_d
     integer                :: isector,Dim,istate
     integer                :: DimUp
-    integer                :: Nup
+    integer                :: Nup,Sz
     integer                :: i,j,iter,unit,vecDim,PvecDim
     integer                :: Nitermax,Neigen,Nblock
     real(8)                :: oldzero,enemin,Ei,Egs
@@ -108,6 +108,7 @@ contains
     iter=0
     sector: do isector=1,Nsectors
        call get_Nup(isector,nup)
+       Sz = -Ns/2+Nup
        !
        if(ed_filling/=0 .AND. Nup/=ed_filling )cycle sector
        iter=iter+1
@@ -133,7 +134,7 @@ contains
        if(MPIMASTER)then
           if(ed_verbose>1)then
              write(LOGfile,"(1X,I9,A,I9,A6,1I3,A7,I20,1X)",advance='no')&
-                  iter,"-Solving sector:",isector,", nup:",nup,", dim=",getdim(isector)
+                  iter,"-Solving sector:",isector,", Sz:",-Ns/2+nup,", dim=",getdim(isector)
              if(lanc_solve)write(LOGfile,"(A12,3I6,1X)",advance='no')"Lanc Info:",Neigen,Nitermax,Nblock
              write(LOGfile,*)""
           endif
@@ -257,7 +258,15 @@ contains
        !Print a list of the collected eigenvalues:
        if(MPIMASTER)then
           open(free_unit(unit),file="eigenvalues_list.ed",position='append',action='write')
-          call print_eigenvalues_list(isector,eig_values(1:Neigen),unit,lanc_solve,mpiAllThreads)
+          call print_eigenvalues_list(isector,eig_values(1:Neigen),unit)
+          close(unit)
+          !
+          open(free_unit(unit),file="excitations_list.ed",position='append',action='write')
+          call print_diff_eigenvalues_list(isector,eig_values(1:Neigen),unit)
+          close(unit)
+          !
+          open(free_unit(unit),file="list_gs_energy.ed",position='append',action='write')
+          call save_gs_list(isector,eig_values(1),unit)
           close(unit)
        endif
        !
@@ -269,7 +278,6 @@ contains
     !
     !
     !Print the obtained state_list, before any cut
-    call save_state_list()
     if(ed_verbose>=2)call print_state_list(LOGfile)
     !
     !Print info about the ground state(s)
@@ -278,9 +286,11 @@ contains
           isector = es_return_sector(state_list,istate)
           Egs     = es_return_energy(state_list,istate)
           call get_Nup(isector,Nup)
-          write(LOGfile,"(A,F20.12,1I4)")'Egs =',Egs,nup
+          write(LOGfile,"(A,F20.12,1I4)")'Egs =',Egs,-Ns+2*nup
        enddo
     endif
+
+
     !
     !if finite T and loop over T we diagonalize first at the largest temperature.
     !to avoid keeping useless state we prune those above the cutoff at this T_max.
@@ -329,67 +339,61 @@ contains
   !    POST-PROCESSING ROUTINES
   !
   !###################################################################################################
-  subroutine save_state_list()
-    integer :: qn,isector
-    integer :: istate
-    integer :: unit
-    if(MPIMASTER)then
-       open(free_unit(unit),file="state_list.ed")
-       do istate=1,state_list%size
-          isector = es_return_sector(state_list,istate)
-          call get_nup(isector,qn)
-          write(unit,"(i8,i12,i8)")istate,isector,qn
-       enddo
-       close(unit)
-    endif
-  end subroutine save_state_list
-
-
   subroutine print_state_list(unit)
     integer :: qn,isector
     integer :: istate
     integer :: unit
     real(8) :: Estate
     if(MPIMASTER)then
-       write(unit,"(A1,A6,A18,2x,A19,1x,2A10,A4)")"#","i","E_i","exp(-(E-E0)/T)","Sect","Dim","QN:"
+       write(unit,"(A1,A6,A18,2x,A19,1x,2A10,A4)")"#","i","E_i","exp(-(E-E0)/T)","Sect","Dim","Sz:"
        do istate=1,state_list%size
           Estate  = es_return_energy(state_list,istate)
           isector = es_return_sector(state_list,istate)
           call get_nup(isector,qn)
           write(unit,"(i6,f18.12,2x,ES19.12,1x,2I10,I4)")&
-               istate,Estate,exp(-(Estate-state_list%emin)/temp),isector,getdim(isector),qn
+               istate,Estate,exp(-(Estate-state_list%emin)/temp),isector,getdim(isector),-Ns/2+qn
        enddo
     endif
   end subroutine print_state_list
 
 
 
-  subroutine print_eigenvalues_list(isector,eig_values,unit,lanc,allt)
+  subroutine print_eigenvalues_list(isector,eig_values,unit)
+    integer              :: isector
+    real(8),dimension(:) :: eig_values
+    integer              :: unit,i,qn
+    if(MPIMASTER)then
+       call get_Nup(isector,qn)
+       do i=1,size(eig_values)
+          write(unit,"(F22.12)",advance='no')eig_values(i)
+       enddo
+       write(unit,"(1x,A4,I4)",advance='no')": Sz",-Ns/2+qn
+    endif
+  end subroutine print_eigenvalues_list
+
+
+  subroutine save_gs_list(isector,eig_values,unit)
+    integer              :: isector
+    real(8) :: eig_values
+    integer              :: unit,i,qn
+    if(MPIMASTER)then
+       write(unit,"(F22.12)")eig_values
+    endif
+  end subroutine save_gs_list
+
+  subroutine print_diff_eigenvalues_list(isector,eig_values,unit)
     integer              :: isector
     real(8),dimension(:) :: eig_values
     integer              :: unit,i,qn
     logical              :: lanc,allt
     if(MPIMASTER)then
-       if(lanc)then
-          if(allt)then
-             write(unit,"(A9,A15)")" # Sector","Indices"
-          else
-             write(unit,"(A10,A15)")" #T Sector","Indices"
-          endif
-       else
-          write(unit,"(A10,A15)")" #X Sector","Indices"
-       endif
        call get_Nup(isector,qn)
-       write(unit,"(I9,I6)")isector,qn
-       do i=1,size(eig_values)
-          write(unit,*)eig_values(i)
+       write(unit,"(I4)",advance='no')-Ns/2+qn
+       do i=2,size(eig_values)
+          write(unit,"(F22.12)",advance='no')eig_values(i)-eig_values(1)
        enddo
-       write(unit,*)""
     endif
-  end subroutine print_eigenvalues_list
-
-
-
+  end subroutine print_diff_eigenvalues_list
 
 
 end MODULE ED_DIAG

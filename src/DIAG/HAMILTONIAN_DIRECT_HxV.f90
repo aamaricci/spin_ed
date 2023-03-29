@@ -41,8 +41,8 @@ contains
     Hv=zero
     !
     !-----------------------------------------------!
-    do j=MpiIstart,MpiIend
-       m   = Hsector%H(1)%map(j)
+    do i=1,Dim
+       m   = Hsector%H(1)%map(i)
        Nup = bdecomp(m,Ns)
        Sz  = Nup-0.5d0
        include "direct/HxV_spin.f90"
@@ -87,8 +87,8 @@ contains
     Hv=zero
     !
     !-----------------------------------------------!
-    states: do j=MpiIstart,MpiIend
-       m   = Hsector%H(1)%map(j)
+    states: do i=MpiIstart,MpiIend
+       m   = Hsector%H(1)%map(i)
        Nup = bdecomp(m,Ns)
        Sz  = Nup-0.5d0
        include "direct/HxV_spin.f90"

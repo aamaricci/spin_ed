@@ -13,7 +13,6 @@
         htmp = htmp - Hij(io,jo)*Sz(io)*Sz(jo)
      enddo
   enddo
-  i = j
   hv(i-MpiIshift) = hv(i-MpiIshift) + htmp*vin(i)
   !
   !Sum_ij H_ij 0.5*Sp(i)Sm(j) + 0.5*Sm(i)*Sp(j)
@@ -25,16 +24,16 @@
         if (Jcondition) then
            call Sminus(jo,m,k1)
            call Splus(io,k1,k2)
-           i = binary_search(Hsector%H(1)%map,k2)              
-           if(i/=0)hv(i-MpiIshift) = hv(i-MpiIshift) + htmp*vin(j)
+           j = binary_search(Hsector%H(1)%map,k2)
+           hv(i-MpiIshift) = hv(i-MpiIshift) + htmp*vin(j)
         endif
         !
         Jcondition = (Nup(io)==1) .AND. (Nup(jo)==0)
         if (Jcondition) then
            call Splus(jo,m,k1)
            call Sminus(io,k1,k2)
-           i = binary_search(Hsector%H(1)%map,k2)
-           if(i/=0)hv(i-MpiIshift) = hv(i-MpiIshift) + htmp*vin(j)
+           j = binary_search(Hsector%H(1)%map,k2)
+           hv(i-MpiIshift) = hv(i-MpiIshift) + htmp*vin(j)
         endif
      enddo
   enddo
